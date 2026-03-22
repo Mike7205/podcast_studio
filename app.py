@@ -325,29 +325,36 @@ with tab_edit:
     # Processing
     st.subheader("Processing")
 
-    with st.expander("🔇  Noise Reduction", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        noise_prop = c1.slider("Noise reduction", 0.0, 1.0, 0.5, 0.05)
-        gain_db    = c2.slider("Gain (dB)", -20, 40, 0)
-        stationary = c3.checkbox("Stationary noise", value=True,
-                                 help="Best for constant hum/hiss")
+    with st.form("processing_form"):
+        with st.expander("🔇  Noise Reduction", expanded=True):
+            c1, c2, c3 = st.columns(3)
+            noise_prop = c1.slider("Noise reduction", 0.0, 1.0, 0.5, 0.05)
+            gain_db    = c2.slider("Gain (dB)", -20, 40, 0)
+            stationary = c3.checkbox("Stationary noise", value=True,
+                                     help="Best for constant hum/hiss")
 
-    with st.expander("🎙️  Vocal Enhancement", expanded=True):
-        c1, c2 = st.columns(2)
-        vocal_clarity = c1.slider("Vocal clarity", 0.0, 1.0, 0.0, 0.05,
-                                  help="Boosts 200–4000 Hz voice range")
-        hp_cutoff     = c2.slider("Low-cut filter (Hz)", 0, 500, 80, 10,
-                                  help="Removes rumble below this frequency")
+        with st.expander("🎙️  Vocal Enhancement", expanded=True):
+            c1, c2 = st.columns(2)
+            vocal_clarity = c1.slider("Vocal clarity", 0.0, 1.0, 0.0, 0.05,
+                                      help="Boosts 200–4000 Hz voice range")
+            hp_cutoff     = c2.slider("Low-cut filter (Hz)", 0, 500, 80, 10,
+                                      help="Removes rumble below this frequency")
 
-    with st.expander("🎚️  Voice Modulation", expanded=True):
-        c1, c2 = st.columns(2)
-        pitch_steps = c1.slider("Pitch shift (semitones)", -12, 12, 0,
-                                help="±2 subtle · ±12 = one octave")
-        speed       = c2.slider("Speed ×", 0.5, 2.0, 1.0, 0.05,
-                                help="< 1 slower · > 1 faster")
+        with st.expander("🎚️  Voice Modulation", expanded=True):
+            c1, c2 = st.columns(2)
+            pitch_steps = c1.slider("Pitch shift (semitones)", -12, 12, 0,
+                                    help="±2 subtle · ±12 = one octave")
+            speed       = c2.slider("Speed ×", 0.5, 2.0, 1.0, 0.05,
+                                    help="< 1 slower · > 1 faster")
 
-    bc1, bc2 = st.columns(2)
-    if bc1.button("▶  Apply & compare"):
+        fc1, fc2 = st.columns(2)
+        submitted = fc1.form_submit_button("▶  Apply & compare",
+                                           use_container_width=True,
+                                           type="primary")
+        reset     = fc2.form_submit_button("↩  Reset",
+                                           use_container_width=True)
+
+    if submitted:
         with st.spinner("Processing…"):
             y_proc = apply_processing(
                 y_orig, sr,
@@ -357,7 +364,7 @@ with tab_edit:
             st.session_state.processed_audio = (y_proc, sr)
         st.rerun()
 
-    if bc2.button("↩  Reset"):
+    if reset:
         st.session_state.processed_audio = None
         st.rerun()
 
