@@ -38,6 +38,7 @@ for k, v in {
     "recorded_audio":  None,   # (np.ndarray, int) – from Record tab
     "uploaded_audio":  None,   # (np.ndarray, int) – from Upload tab
     "processed_audio": None,   # (np.ndarray, int) – after noise reduction
+    "mic_key":         0,      # incremented to force audio_input re-init
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -178,7 +179,11 @@ with tab_rec:
     st.header("Record New Audio")
     st.caption("Uses your browser's microphone — works with FSDZMIC S338 and any other device.")
 
-    audio_input = st.audio_input("🎤  Click to record")
+    if st.button("🔄  Reset microphone", help="Use this if the recorder shows an error"):
+        st.session_state.mic_key += 1
+        st.rerun()
+
+    audio_input = st.audio_input("🎤  Click to record", key=f"mic_{st.session_state.mic_key}")
 
     if audio_input is not None:
         raw_bytes = audio_input.read()
