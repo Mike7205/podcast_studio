@@ -1,5 +1,5 @@
 """
-Pod Tools – Audio Studio
+Podcast Studio
 Streamlit app for recording, uploading, and editing audio.
 Optimised for FSDZMIC S338 USB microphone.
 """
@@ -25,17 +25,123 @@ from scipy.signal import butter, filtfilt
 
 # ─── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Pod Tools – Audio Studio",
+    page_title="Podcast Studio",
     page_icon="🎙️",
     layout="wide",
 )
 
+# ─── Wood-grain background styling ───────────────────────────────────────────
+st.markdown("""
+<style>
+/* Spruce wood board background */
+.stApp {
+    background-color: #6b4423;
+    background-image:
+        repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 18px,
+            rgba(0,0,0,0.04) 18px,
+            rgba(0,0,0,0.04) 20px
+        ),
+        repeating-linear-gradient(
+            180deg,
+            transparent 0px,
+            transparent 6px,
+            rgba(255,255,255,0.015) 6px,
+            rgba(255,255,255,0.015) 7px
+        ),
+        linear-gradient(
+            175deg,
+            #8b5c2a 0%,
+            #7a4f24 15%,
+            #6b4320 30%,
+            #7d5228 45%,
+            #6a3f1c 60%,
+            #7b4e26 75%,
+            #5e3a18 90%,
+            #7a4e25 100%
+        );
+}
+
+/* Semi-transparent overlay on all main content blocks */
+.block-container {
+    background: rgba(20, 10, 5, 0.72);
+    border-radius: 12px;
+    padding: 2rem 2.5rem !important;
+    backdrop-filter: blur(2px);
+}
+
+/* Tabs styling */
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px 8px 0 0;
+    padding: 4px 8px 0;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #d4a96a !important;
+    font-weight: 600;
+}
+.stTabs [aria-selected="true"] {
+    color: #f5d7a0 !important;
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 6px 6px 0 0;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background: rgba(0,0,0,0.25);
+    border-radius: 0 0 8px 8px;
+    padding: 1rem;
+}
+
+/* Title */
+h1 {
+    color: #f5d7a0 !important;
+    text-shadow: 1px 2px 6px rgba(0,0,0,0.7);
+}
+
+/* Metric labels and values */
+label, .stSlider label, .stSelectbox label, .stTextInput label {
+    color: #e8c990 !important;
+}
+
+/* Buttons */
+.stButton > button {
+    background: rgba(139, 92, 42, 0.85);
+    color: #fff5e0;
+    border: 1px solid #c4884a;
+    border-radius: 6px;
+}
+.stButton > button:hover {
+    background: rgba(180, 120, 60, 0.95);
+    border-color: #e0a862;
+}
+
+/* Download button */
+.stDownloadButton > button {
+    background: rgba(60, 100, 60, 0.8);
+    color: #d4f0d4;
+    border: 1px solid #6aaa6a;
+}
+
+/* General text */
+p, span, div {
+    color: #f0e0c8;
+}
+
+/* Slider track */
+.stSlider [data-baseweb="slider"] {
+    filter: sepia(0.3) hue-rotate(-10deg);
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ─── Session state ────────────────────────────────────────────────────────────
 for k, v in {
-    "recorded_audio":  None,   # (np.ndarray, int)
-    "uploaded_audio":  None,   # (np.ndarray, int)
-    "processed_audio": None,   # (np.ndarray, int)
-    "mic_key":         0,
+    "recorded_audio":   None,   # (np.ndarray, int)
+    "uploaded_audio":   None,   # (np.ndarray, int)
+    "processed_audio":  None,   # (np.ndarray, int)
+    "mic_key":          0,
+    "edit_src_override": None,  # force source selection from button
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -186,7 +292,7 @@ def apply_processing(y: np.ndarray, sr: int,
 
 
 # ─── UI ──────────────────────────────────────────────────────────────────────
-st.title("🎙️  Pod Tools – Audio Studio")
+st.title("🎙️  Podcast Studio")
 
 tab_rec, tab_upload, tab_edit = st.tabs(
     ["⏺  Record", "⬆️  Upload", "✂️  Edit & Export"]
@@ -301,7 +407,24 @@ with tab_edit:
         st.info("No audio available. Use the **Record** or **Upload** tab first.")
         st.stop()
 
-    chosen_src = st.radio("Audio source", list(sources.keys()), horizontal=True)
+    src_keys = list(sources.keys())
+    # Apply override from "Use uploaded file" button
+    if st.session_state.edit_src_override in src_keys:
+        default_idx = src_keys.index(st.session_state.edit_src_override)
+        st.session_state.edit_src_override = None
+    else:
+        default_idx = 0
+
+    col_radio, col_btn = st.columns([3, 1])
+    with col_radio:
+        chosen_src = st.radio("Audio source", src_keys, index=default_idx, horizontal=True)
+    with col_btn:
+        if st.session_state.uploaded_audio is not None and "Last recording" in src_keys:
+            st.write("")  # vertical spacer to align with radio
+            if st.button("📂 Use uploaded file", use_container_width=True):
+                st.session_state.edit_src_override = "Uploaded file"
+                st.rerun()
+
     y_orig, sr = sources[chosen_src]
     dur = len(y_orig) / sr
 
