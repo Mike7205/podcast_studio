@@ -518,7 +518,7 @@ with tab_edit:
     # ── Source selector ────────────────────────────────────────────────────────
     sources: dict[str, tuple[np.ndarray, int]] = {}
     if st.session_state.recorded_audio is not None:
-        sources["Last recording"] = st.session_state.recorded_audio
+        sources["My recording"] = st.session_state.recorded_audio
     if st.session_state.uploaded_audio is not None:
         sources["Uploaded file"]  = st.session_state.uploaded_audio
 
