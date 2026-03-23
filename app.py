@@ -159,6 +159,7 @@ for k, v in {
     "processed_audio":  None,   # (np.ndarray, int)
     "mic_key":          0,
     "edit_src_override": None,  # force source selection from button
+    "_upload_sig":       None,  # (name, size) to avoid re-processing on rerun
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -469,18 +470,23 @@ with tab_edit:
                 label_visibility="collapsed",
             )
             if qfile is not None:
-                with st.spinner("Loading…"):
-                    ext = Path(qfile.name).suffix.lower()
-                    raw = qfile.read()
-                    if ext in (".wav",):
-                        y_q, sr_q = wav_bytes_to_numpy(raw)
-                    else:
-                        wav_q = any_to_wav_bytes(raw, suffix=ext)
-                        y_q, sr_q = wav_bytes_to_numpy(wav_q)
-                st.session_state.uploaded_audio = (y_q, sr_q)
-                st.session_state.edit_src_override = "Uploaded file"
-                st.success(f"{qfile.name}  |  {len(y_q)/sr_q:.1f}s  @  {sr_q} Hz")
-                st.rerun()
+                file_sig = (qfile.name, qfile.size)
+                if st.session_state._upload_sig != file_sig:
+                    with st.spinner("Loading…"):
+                        ext = Path(qfile.name).suffix.lower()
+                        raw = qfile.read()
+                        if ext in (".wav",):
+                            y_q, sr_q = wav_bytes_to_numpy(raw)
+                        else:
+                            wav_q = any_to_wav_bytes(raw, suffix=ext)
+                            y_q, sr_q = wav_bytes_to_numpy(wav_q)
+                    st.session_state.uploaded_audio = (y_q, sr_q)
+                    st.session_state.edit_src_override = "Uploaded file"
+                    st.session_state._upload_sig = file_sig
+                    st.rerun()
+                else:
+                    y_d, sr_d = st.session_state.uploaded_audio
+                    st.success(f"{qfile.name}  |  {len(y_d)/sr_d:.1f}s  @  {sr_d} Hz")
         with qu_col:
             qu_url = st.text_input("…or paste URL / YouTube link",
                                    key="edit_url_input",
